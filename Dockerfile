@@ -11,9 +11,10 @@ RUN apt-get update && \
                        libgl1-mesa-glx \
                        libglib2.0-0
 
-COPY main.py .
 COPY requirements.txt .
 
 RUN pip3 install -r requirements.txt
 
-ENTRYPOINT ["python3", "main.py", "-c", "/options/config.json"]
+COPY main.py .
+
+ENTRYPOINT ["python3", "main.py", "-c", "/options/config.json", "-l", "/logs"]
