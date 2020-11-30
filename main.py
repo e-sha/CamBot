@@ -9,6 +9,8 @@ from argparse import ArgumentParser
 import logging
 import re
 
+from cam_holder import CamHolder
+
 
 def parse_args():
     parser = ArgumentParser()
@@ -50,17 +52,12 @@ def print_help(bot, message):
     bot.send_message(message.from_user.id, '/start to get data')
 
 def process(bot, message):
-    cam = cv2.VideoCapture(config['camera_id'])
-    s, img = cam.read()
-    if s:
-        buf = io.BytesIO()
-        buf.write(bytes(cv2.imencode('.jpg', img)[1]))
-        buf.seek(0)
-        bot.send_photo(message.from_user.id, buf)
-        del buf
-    else:
-        bot.send_message(message.from_user.id, 'Cannot read data from cam')
-    cam.release()
+    img = cam.get_image()
+    buf = io.BytesIO()
+    buf.write(bytes(cv2.imencode('.jpg', img)[1]))
+    buf.seek(0)
+    bot.send_photo(message.from_user.id, buf)
+    del buf
 
 def get_stat(bot, message):
     if message.chat.username != 'eshalnov':
@@ -81,6 +78,7 @@ CMD = {'/start': process,
 args = parse_args()
 args.logger = Logger(args)
 config = json.loads(args.config.read_text())
+cam = CamHolder(config['camera_id'])
 
 bot = telebot.TeleBot(config['token'])
 
