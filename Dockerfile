@@ -15,6 +15,6 @@ COPY requirements.txt .
 
 RUN pip3 install -r requirements.txt
 
-COPY main.py .
+COPY main.py cam_holder.py ./
 
 ENTRYPOINT ["python3", "main.py", "-c", "/options/config.json", "-l", "/logs"]

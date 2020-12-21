@@ -17,6 +17,4 @@ log_path=${script_path}/logs
 
 
 echo "{ \"token\": \"$(cat $TOKEN_PATH)\", \"camera_id\": 0 }" >$config_file
-docker run -v ${config_dir_path}:/options -v ${log_path}:/logs --device=/dev/video${CAM_ID}:/dev/video0 cambot:latest
-
-rm -rf ${config_dir_path}
+docker run -d -v ${config_dir_path}:/options -v ${log_path}:/logs --device=/dev/video${CAM_ID}:/dev/video0 cambot:latest

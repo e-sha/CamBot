@@ -6,14 +6,14 @@ from copy import deepcopy
 
 class CamHolder:
     def __init__(self, camera_id):
-        self._camera_id
+        self._camera_id = camera_id
         self._data = None
         self._lock = RLock()
         self._thread = Thread(target = self._start)
         self._thread.start()
 
     def _start(self):
-        cam = cv2.VideoCapture(camera_id)
+        cam = cv2.VideoCapture(self._camera_id)
         while True:
             s, img = cam.read()
             if s:
