@@ -78,9 +78,10 @@ CMD = {'/start': process,
 args = parse_args()
 args.logger = Logger(args)
 config = json.loads(args.config.read_text())
+args.config.unlink()
 cam = CamHolder(config['camera_id'])
 
-bot = telebot.TeleBot(config['token'])
+bot = telebot.TeleBot(config.pop('token', None))
 
 @bot.message_handler(content_types=['text'])
 def get_text_message(message):
