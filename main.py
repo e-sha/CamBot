@@ -10,6 +10,8 @@ import logging
 import re
 
 from cam_holder import CamHolder
+from singleton_processor import SingletonProcessor
+from detector import YOLODetector
 
 
 def parse_args():
@@ -52,7 +54,13 @@ def print_help(bot, message):
     bot.send_message(message.from_user.id, '/start to get data')
 
 def process(bot, message):
+    global processor
     img = cam.get_image()
+    global args
+    args.logger.log_message('', img.shape)
+    img = processor(img)
+    args.logger.log_message('', img.shape)
+    print(img.shape)
     buf = io.BytesIO()
     buf.write(bytes(cv2.imencode('.jpg', img)[1]))
     buf.seek(0)
@@ -80,6 +88,7 @@ args.logger = Logger(args)
 config = json.loads(args.config.read_text())
 args.config.unlink()
 cam = CamHolder(config['camera_id'])
+processor = SingletonProcessor(YOLODetector)
 
 bot = telebot.TeleBot(config.pop('token', None))
 

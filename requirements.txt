@@ -1,2 +1,10 @@
-pyTelegramBotAPI==3.7.2
+matplotlib
+numpy
 opencv-python
+pandas
+pyTelegramBotAPI==3.7.2
+pyyaml
+seaborn
+torch
+torchvision
+tqdm

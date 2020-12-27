@@ -24,7 +24,8 @@ def recv(conn, size_type, block_size=4096):
 
     return pickle.loads(data)
 
-def Processing(processor, port, size_type, controll_queue):
+def Processing(constructor, port, size_type, controll_queue, args, kwargs):
+    processor = constructor(*args, **kwargs)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(('0.0.0.0', port))
     s.listen(1)
@@ -46,11 +47,11 @@ def Processing(processor, port, size_type, controll_queue):
             conn.close()
 
 class SingletonProcessor:
-    def __init__(self, processor):
+    def __init__(self, processor_constructor, *args, **kwargs):
         self._port = 9000
         self._size_type = np.uint64
         self._controll_queue = mp.Queue()
-        self._processor = mp.Process(target=Processing, args=(processor, self._port, self._size_type, self._controll_queue))
+        self._processor = mp.Process(target=Processing, args=(processor_constructor, self._port, self._size_type, self._controll_queue, args, kwargs))
         self._processor.start()
         status = self._controll_queue.get()
         assert status == 'ready'
