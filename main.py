@@ -50,24 +50,19 @@ class Logger():
         return ''.join([f.read_text() for f in self.get_existing_files() if f != self.logfile])
 
 
-def print_help(bot, message):
+def print_help(bot, message, logger, processor, cam):
     bot.send_message(message.from_user.id, '/start to get data')
 
-def process(bot, message):
-    global processor
+def process(bot, message, logger, processor, cam):
     img = cam.get_image()
-    global args
-    args.logger.log_message('', img.shape)
     img = processor(img)
-    args.logger.log_message('', img.shape)
-    print(img.shape)
     buf = io.BytesIO()
     buf.write(bytes(cv2.imencode('.jpg', img)[1]))
     buf.seek(0)
     bot.send_photo(message.from_user.id, buf)
     del buf
 
-def get_stat(bot, message):
+def get_stat(bot, message, logger, processor, cam):
     if message.chat.username != 'eshalnov':
         process_unknown(bot, message)
     stat = args.logger.get_stat()
@@ -79,27 +74,33 @@ def get_stat(bot, message):
 def process_unknown(bot, message):
     bot.send_message(message.from_user.id, 'Unknow command.\n/help to get availabe commands')
 
-CMD = {'/start': process,
-       '/stat': get_stat,
-       '/help': print_help}
+def main(args, config):
+    CMD = {'/start': process,
+           '/stat': get_stat,
+           '/help': print_help}
+    cam = CamHolder(config['camera_id'])
+    processor = SingletonProcessor(YOLODetector)
 
-args = parse_args()
-args.logger = Logger(args)
-config = json.loads(args.config.read_text())
-args.config.unlink()
-cam = CamHolder(config['camera_id'])
-processor = SingletonProcessor(YOLODetector)
+    bot = telebot.TeleBot(config.pop('token', None))
 
-bot = telebot.TeleBot(config.pop('token', None))
+    @bot.message_handler(content_types=['text'])
+    def get_text_message(message):
+        args.logger.log_message(message.chat.username, message.text)
+        cmd = CMD.get(message.text, process_unknown)
+        args.logger.log_message('', cmd)
+        try:
+            cmd(bot, message, args.logger, processor, cam)
+        except Exception as err:
+            exc_info = sys.exc_info()
+            exc = traceback.format_exception(*exc_info)
+            args.logger.log_message('', ''.join(exc))
 
-@bot.message_handler(content_types=['text'])
-def get_text_message(message):
-    args.logger.log_message(message.chat.username, message.text)
-    cmd = CMD.get(message.text, process_unknown)
-    try:
-        cmd(bot, message)
-    except Exception as err:
-        exc_info = sys.exc_info()
-        traceback.print_exception(*exc_info)
+    bot.polling(none_stop=True, interval=0)
 
-bot.polling(none_stop=True, interval=0)
+if __name__=='__main__':
+    args = parse_args()
+    args.logger = Logger(args)
+    config = json.loads(args.config.read_text())
+    args.config.unlink()
+    args.__dict__.pop('config')
+    main(args, config)
