@@ -15,6 +15,6 @@ COPY requirements.txt .
 
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-COPY main.py cam_holder.py detector.py singleton_processor.py ./
+COPY main.py cam_holder.py detector.py singleton_processor.py logger.py message.py processor.py command.py ./
 
 ENTRYPOINT ["python3", "main.py", "-c", "/options/config.json", "-l", "/logs"]
