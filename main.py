@@ -1,18 +1,26 @@
-import telebot
-import json
-from pathlib import Path
-import sys
-import cv2
-import traceback
-import io
 from argparse import ArgumentParser
+import cv2
+from enum import Enum
+from functools import partial
+import io
+import json
 import logging
+from pathlib import Path
 import re
+import telebot
+import traceback
+import sys
 
 from cam_holder import CamHolder
-from singleton_processor import SingletonProcessor
 from detector import YOLODetector
+from singleton_processor import SingletonProcessor
 
+
+class MessageType(Enum):
+    TEXT=0
+    IMAGE=1
+    FILE=2
+    VIDEO=3
 
 def parse_args():
     parser = ArgumentParser()
@@ -62,34 +70,100 @@ def process(bot, message, logger, processor, cam):
     bot.send_photo(message.from_user.id, buf)
     del buf
 
-def get_stat(bot, message, logger, processor, cam):
-    if message.chat.username != 'eshalnov':
-        process_unknown(bot, message)
-    stat = args.logger.get_stat()
-    stat = stat.split('\n')
-    N = 10
-    for i in range(0, len(stat), N):
-        bot.send_message(message.from_user.id, '\n'.join(stat[i:i+N]))
+def get_stat(message, logger):
+    stat = logger.get_stat()
+    stat = '\n'.join(stat.split('\n')[-10:])
+    return TextData(stat)
 
-def process_unknown(bot, message):
-    bot.send_message(message.from_user.id, 'Unknow command.\n/help to get availabe commands')
+def process_unknown(message):
+    return TextData('Unknow command.\n/help to get availabe commands')
 
-def main(args, config):
-    CMD = {'/start': process,
-           '/stat': get_stat,
-           '/help': print_help}
-    cam = CamHolder(config['camera_id'])
-    processor = SingletonProcessor(YOLODetector)
+class Data:
+    def __init__(self, message_type, message_data):
+        self._message_type = message_type
+        self._message_data = message_data
 
-    bot = telebot.TeleBot(config.pop('token', None))
+    def get_type(self):
+        return self._message_type
+
+class TextData(Data):
+    def __init__(self, text):
+        super().__init__(MessageType.TEXT, text)
+
+class ImageData(Data):
+    def __init__(self, img):
+        super().__init__(MessageType.IMAGE, img)
+
+class Command:
+    def __init__(self, description, processor):
+        self._description = description
+        self._processor = processor
+
+    def __call__(self, *args, **kwargs):
+        return self._processor(*args, **kwargs)
+
+    def __str__(self):
+        return self._description + f' {self._processor}'
+
+
+class Processor:
+    def __init__(self, camera_id):
+        self._cam = CamHolder(camera_id)
+        self._processor = SingletonProcessor(YOLODetector)
+        pass
+
+    def get_commands(self):
+        return {MessageType.TEXT: {'/start': Command(description='Returns image from a camera', processor=self.__call__)}}
+
+    def __call__(self, data):
+        assert data._message_type == MessageType.TEXT and data._message_data == '/start'
+        img = self._cam.get_image()
+        img = self._processor(img)
+        return ImageData(img)
+
+def return_data(bot, user_id, data):
+    if isinstance(data, TextData):
+        bot.send_message(user_id, data._message_data)
+    if isinstance(data, ImageData):
+        buf = io.BytesIO()
+        buf.write(bytes(cv2.imencode('.jpg', data._message_data)[1]))
+        buf.seek(0)
+        bot.send_photo(user_id, buf)
+        del buf
+    else:
+        assert False, f'unsupported data type {type(data)}'
+
+def main(args, token, processor):
+    CMD = {MessageType.TEXT: {'/stat': Command('Prints usage statistics', partial(get_stat, logger=args.logger)),
+                              '/help': Command('Prints help message', print_help)},
+           MessageType.IMAGE: {},
+           MessageType.VIDEO: {},
+           MessageType.FILE: {}}
+    processor_cmds = processor.get_commands()
+    for cmd_type in MessageType:
+        # check duplicate
+        if cmd_type in processor_cmds and cmd_type in CMD:
+            common_cmds = set(CMD[cmd_type].keys()).intersection(set(processor_cmds[cmd_type].keys()))
+            assert len(common_cmds) == 0, f"Processor shouldn't contain commands {common_cmds} of type {cmd_type}"
+        # merge commands
+        if cmd_type not in CMD:
+            CMD[cmd_type] = {}
+        if cmd_type not in processor_cmds:
+            processor_cmds[cmd_type] = {}
+        CMD[cmd_type].update(processor_cmds[cmd_type])
+
+    bot = telebot.TeleBot(token)
+    del token
 
     @bot.message_handler(content_types=['text'])
     def get_text_message(message):
         args.logger.log_message(message.chat.username, message.text)
-        cmd = CMD.get(message.text, process_unknown)
+        cmd = CMD[MessageType.TEXT].get(message.text, process_unknown)
         args.logger.log_message('', cmd)
+        input_data = TextData(message.text)
         try:
-            cmd(bot, message, args.logger, processor, cam)
+            result = cmd(input_data)
+            return_data(bot, message.from_user.id, result)
         except Exception as err:
             exc_info = sys.exc_info()
             exc = traceback.format_exception(*exc_info)
@@ -103,4 +177,5 @@ if __name__=='__main__':
     config = json.loads(args.config.read_text())
     args.config.unlink()
     args.__dict__.pop('config')
-    main(args, config)
+    processor = Processor(config['camera_id'])
+    main(args, config.pop('token', None), processor)
