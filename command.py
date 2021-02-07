@@ -7,4 +7,4 @@ class Command:
         return self._processor(*args, **kwargs)
 
     def __str__(self):
-        return self._description + f' {self._processor}'
+        return self._description

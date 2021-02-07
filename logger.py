@@ -3,8 +3,8 @@ import re
 
 
 class Logger():
-    def __init__(self, args):
-        self.log_path = args.logpath
+    def __init__(self, logpath):
+        self.log_path = logpath
         self.log_path.mkdir(parents=True, exist_ok=True)
         self.template = re.compile(r'log(\d+).log')
         index = max(self.get_existing_indices() + [-1]) + 1
