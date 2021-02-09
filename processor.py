@@ -1,8 +1,8 @@
-from cam_holder import CamHolder
-from command import Command
+from cvbot.utils.cam_holder import CamHolder
+from cvbot.utils.command import Command
+from cvbot.utils.message import MessageType, ImageData
+from cvbot.utils.singleton_processor import SingletonProcessor
 from detector import YOLODetector
-from message import MessageType, ImageData
-from singleton_processor import SingletonProcessor
 
 
 class Processor:

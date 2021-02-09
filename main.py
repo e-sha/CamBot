@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from cvbot import Bot
+from processor import Processor
 
 
 def parse_args():
