@@ -3,11 +3,13 @@ import socket
 import numpy as np
 import pickle
 
+
 def send(conn, data, size_type):
     pickled = pickle.dumps(data)
     length = size_type(len(pickled))
     conn.sendall(length.tobytes())
     conn.sendall(pickled)
+
 
 def recv(conn, size_type, block_size=4096):
     size_length = size_type().nbytes
@@ -23,6 +25,7 @@ def recv(conn, size_type, block_size=4096):
         data += conn.recv(cur_block_size)
 
     return pickle.loads(data)
+
 
 def Processing(constructor, port, size_type, controll_queue, args, kwargs):
     processor = constructor(*args, **kwargs)
@@ -46,12 +49,19 @@ def Processing(constructor, port, size_type, controll_queue, args, kwargs):
         if conn is not None:
             conn.close()
 
+
 class SingletonProcessor:
     def __init__(self, processor_constructor, *args, **kwargs):
         self._port = 9000
         self._size_type = np.uint64
         self._controll_queue = mp.Queue()
-        self._processor = mp.Process(target=Processing, args=(processor_constructor, self._port, self._size_type, self._controll_queue, args, kwargs))
+        self._processor = mp.Process(target=Processing,
+                                     args=(processor_constructor,
+                                           self._port,
+                                           self._size_type,
+                                           self._controll_queue,
+                                           args,
+                                           kwargs))
         self._processor.start()
         status = self._controll_queue.get()
         assert status == 'ready'

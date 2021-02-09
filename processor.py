@@ -12,10 +12,13 @@ class Processor:
         pass
 
     def get_commands(self):
-        return {MessageType.TEXT: {'/start': Command(description='Returns image from a camera', processor=self.__call__)}}
+        return {MessageType.TEXT: {'/start': Command(
+            description='Returns image from a camera',
+            processor=self.__call__)}}
 
     def __call__(self, data):
-        assert data._message_type == MessageType.TEXT and data._message_data == '/start'
+        assert (data._message_type == MessageType.TEXT and
+                data._message_data == '/start')
         img = self._cam.get_image()
         img = self._processor(img)
         return ImageData(img)
