@@ -17,5 +17,6 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 COPY main.py processor.py detector.py ./
 COPY cvbot ./cvbot
+COPY data ./data
 
 ENTRYPOINT ["python3", "main.py", "-c", "/options/config.json", "-l", "/logs"]
