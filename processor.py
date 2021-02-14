@@ -18,9 +18,12 @@ class Processor:
                                    '/video': Command(
             description='Returns video',
             processor=self.__call__)},
-                MessageType.IMAGE: {'': Command(
+                MessageType.IMAGE: Command(
             description='Finds objects on an image',
-            processor=self._process_image)}}
+            processor=self._process_image),
+                MessageType.VIDEO: Command(
+            description='Finds objects in a video',
+            processor=self._process_video)}
 
     def __call__(self, data):
         if (data._message_type == MessageType.TEXT and
@@ -42,3 +45,6 @@ class Processor:
         assert data._message_type == MessageType.IMAGE
         img = self._processor(data._message_data)
         return ImageData(img)
+
+    def _process_video(self, data):
+        return TextData('Not implemented')
