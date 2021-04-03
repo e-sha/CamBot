@@ -69,7 +69,7 @@ class Processor:
                 is_fine, image = input_video.read()
                 if not is_fine:
                     break
-                output_video.write(image)
+                output_video.write(self._processor(image))
 
             input_video.release()
             output_video.release()
