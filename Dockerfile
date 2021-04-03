@@ -15,6 +15,8 @@ COPY requirements.txt .
 
 RUN pip3 install --no-cache-dir -r requirements.txt
 
+RUN update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+
 COPY main.py processor.py detector.py ./
 COPY cvbot ./cvbot
 COPY data ./data

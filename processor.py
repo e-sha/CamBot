@@ -1,3 +1,8 @@
+import cv2
+import io
+from pathlib import Path
+import tempfile
+
 from cvbot.utils.cam_holder import CamHolder
 from cvbot.utils.command import Command
 from cvbot.utils.message import MessageType, ImageData, VideoData
@@ -28,9 +33,7 @@ class Processor:
     def __call__(self, data):
         if (data._message_type == MessageType.TEXT and
                 data._message_data == '/video'):
-            from pathlib import Path
             video_path = Path(__file__).parent.resolve()/'data'/'test.mp4'
-            import io
             buf = io.BytesIO()
             buf.write(video_path.read_bytes())
             buf.seek(0)
@@ -47,4 +50,30 @@ class Processor:
         return ImageData(img)
 
     def _process_video(self, data):
-        return TextData('Not implemented')
+        assert data._message_type == MessageType.VIDEO
+        with tempfile.NamedTemporaryFile() as in_tmp_file, \
+             tempfile.NamedTemporaryFile(suffix='.mkv') as out_tmp_file:
+            in_tmp_file.write(data._message_data)
+            input_video = cv2.VideoCapture(in_tmp_file.name)
+
+            width = int(input_video.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(input_video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            fps = int(input_video.get(cv2.CAP_PROP_FPS))
+            fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+
+            output_video = cv2.VideoWriter(out_tmp_file.name,
+                                           fourcc,
+                                           fps,
+                                           (width, height))
+            while True:
+                is_fine, image = input_video.read()
+                if not is_fine:
+                    break
+                output_video.write(image)
+
+            input_video.release()
+            output_video.release()
+
+            buf = io.BytesIO()
+            buf.write(Path(out_tmp_file.name).read_bytes())
+        return VideoData(buf)
