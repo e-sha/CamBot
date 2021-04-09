@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 import json
 from pathlib import Path
 
-from cvbot import Bot
+from cvbot import Bot, TestBot
 from processor import Processor
 
 
@@ -25,4 +25,10 @@ if __name__ == '__main__':
     args.config.unlink()
     args.__dict__.pop('config')
     processor = Processor(config['camera_id'])
-    Bot(config.pop('token', None), processor, args.logpath)
+    if config['test']['enable']:
+        TestBot(Path(config['test']['commands']),
+                processor,
+                args.logpath,
+                Path(config['test']['output']))
+    else:
+        Bot(config.pop('token', None), processor, args.logpath)

@@ -31,29 +31,29 @@ class Processor:
             processor=self._process_video)}
 
     def __call__(self, data):
-        if (data._message_type == MessageType.TEXT and
-                data._message_data == '/video'):
+        if (data.type == MessageType.TEXT and
+                data.data == '/video'):
             video_path = Path(__file__).parent.resolve()/'data'/'test.mp4'
             buf = io.BytesIO()
             buf.write(video_path.read_bytes())
             buf.seek(0)
             return VideoData(buf)
-        assert (data._message_type == MessageType.TEXT and
-                data._message_data == '/start')
+        assert (data.type == MessageType.TEXT and
+                data.data == '/start')
         img = self._cam.get_image()
         img = self._processor(img)
         return ImageData(img)
 
     def _process_image(self, data):
-        assert data._message_type == MessageType.IMAGE
-        img = self._processor(data._message_data)
+        assert data.type == MessageType.IMAGE
+        img = self._processor(data.data)
         return ImageData(img)
 
     def _process_video(self, data):
-        assert data._message_type == MessageType.VIDEO
+        assert data.type == MessageType.VIDEO
         with tempfile.NamedTemporaryFile() as in_tmp_file, \
              tempfile.NamedTemporaryFile(suffix='.mkv') as out_tmp_file:
-            in_tmp_file.write(data._message_data)
+            in_tmp_file.write(data.data)
             input_video = cv2.VideoCapture(in_tmp_file.name)
 
             width = int(input_video.get(cv2.CAP_PROP_FRAME_WIDTH))
