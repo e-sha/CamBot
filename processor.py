@@ -59,7 +59,8 @@ class Processor:
             width = int(input_video.get(cv2.CAP_PROP_FRAME_WIDTH))
             height = int(input_video.get(cv2.CAP_PROP_FRAME_HEIGHT))
             fps = int(input_video.get(cv2.CAP_PROP_FPS))
-            fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+            #fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
             output_video = cv2.VideoWriter(out_tmp_file.name,
                                            fourcc,
