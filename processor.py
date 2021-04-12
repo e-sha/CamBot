@@ -14,7 +14,10 @@ class Processor:
     def __init__(self, camera_id):
         self._cam = CamHolder(camera_id)
         self._processor = SingletonProcessor(YOLODetector)
-        pass
+
+    def terminate(self):
+        self._processor.terminate()
+        self._cam.terminate()
 
     def get_commands(self):
         return {MessageType.TEXT: {'/start': Command(
